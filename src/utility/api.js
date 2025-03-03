@@ -81,8 +81,7 @@ export const fetchTasks = async (projectId = null) => {
     const allTasks = response.data;
 
     if (projectId === null) {
-      const projectsResponse = await todoAPI.get("/projects");
-      const projects = projectsResponse.data;
+      const projects = await fetchProjects();
       const inboxProject = projects.find((p) => p.is_inbox_project === true);
 
       if (inboxProject) {
