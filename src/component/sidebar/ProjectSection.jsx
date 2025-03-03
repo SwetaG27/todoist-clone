@@ -23,7 +23,7 @@ const ProjectsSection = ({
     key: "add-project",
     icon: <PlusOutlined />,
     label: "Add Project",
-    onClick: (e) => {
+    onClick: () => {
       onAddProject();
     },
   };

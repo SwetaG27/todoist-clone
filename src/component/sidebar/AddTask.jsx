@@ -13,7 +13,7 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
         const data = await fetchProjects();
         setProjects(data);
       } catch (error) {
-        message.error("Failed to load projects");
+        message.error("Failed to load projects",error);
       }
     };
 

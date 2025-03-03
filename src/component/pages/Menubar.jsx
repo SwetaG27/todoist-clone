@@ -41,7 +41,7 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
         const favprojects = await fetchFavoriteProjects();
         setFavorites(favprojects);
       } catch (error) {
-        message.error("Failed to load projects");
+        message.error("Failed to load projects",error);
       } finally {
         setLoading(false);
       }

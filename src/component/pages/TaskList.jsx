@@ -44,7 +44,7 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
           const fetchedTasks = await fetchTasks(projectId);
           setTasks(fetchedTasks);
         } catch (error) {
-          message.error(`Failed to load tasks for ${selectedProject.name}`);
+          message.error(`Failed to load tasks for ${selectedProject.name}: ${error}`);
           setTasks([]);
         } finally {
           setLoading(false);
@@ -197,7 +197,7 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
       }
     } catch (error) {
       setAddTaskLoading(false);
-      message.error("Failed to create task");
+      message.error("Failed to create task",error);
     }
   };
 

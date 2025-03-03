@@ -12,7 +12,7 @@ const Navigation = ({ selectedKey, onMenuClick, onAddTaskClick }) => {
       key: "add-task",
       icon: <PlusOutlined style={{ color: "#db4c3f" }} />,
       label: "Add task",
-      onClick: (e) => {
+      onClick: () => {
         onAddTaskClick();
       },
     },
