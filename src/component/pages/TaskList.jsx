@@ -1,24 +1,25 @@
 import { useState, useEffect } from "react";
 import { message } from "antd";
-import {
-  fetchTasks,
-  completeTask,
-  deleteTask,
-  updateTask,
-  fetchProjects,
-  createTask,
-  moveTask,
-} from "../../utility/api";
 
 import TaskHeader from "../tasks/TaskHeader";
 import TaskCollection from "../tasks/TaskCollection";
 import TaskEditModal from "../tasks/TaskEditModal";
 import TaskMoveModal from "../tasks/TaskMoveModal";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchProjectTasks,
+  addTask,
+  editTask,
+  removeTask,
+  moveTaskToProject,
+  markAsComplete,
+} from "../../app/slices/tasksSlice";
 
-const TaskList = ({ selectedProject, refreshKey = 0 }) => {
-  const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
+const TaskList = () => {
+  const dispatch = useDispatch();
+  const { tasks, loading, currentTask } = useSelector((state) => state.tasks);
+  const { selectedProject, projects } = useSelector((state) => state.projects);
+
   const [showForm, setShowForm] = useState(false);
   const [newTaskContent, setNewTaskContent] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
@@ -32,69 +33,35 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
   const [targetProjectId, setTargetProjectId] = useState(null);
 
   useEffect(() => {
-    const loadTasks = async () => {
-      if (selectedProject) {
-        try {
-          setLoading(true);
-          const projectId =
-            selectedProject.name === "Inbox"
-              ? null
-              : selectedProject.id.toString();
-
-          const fetchedTasks = await fetchTasks(projectId);
-          setTasks(fetchedTasks);
-        } catch (error) {
-          message.error(`Failed to load tasks for ${selectedProject.name}: ${error}`);
-          setTasks([]);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadTasks();
-  }, [selectedProject, refreshKey]);
-
-  useEffect(() => {
-    const getProjects = async () => {
-      try {
-        const projects = await fetchProjects();
-        setProjects(projects);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-      }
-    };
-
-    getProjects();
-  }, []);
+    if (selectedProject) {
+      const projectId =
+        selectedProject.name === "Inbox"
+          ? null
+          : selectedProject.id?.toString();
+      dispatch(fetchProjectTasks(projectId));
+    }
+  }, [selectedProject, dispatch]);
 
   const handleComplete = async (taskId) => {
-    const success = await completeTask(taskId);
-    if (success) {
-      setTasks(tasks.filter((task) => task.id !== taskId));
-    } else {
+    try {
+      await dispatch(markAsComplete(taskId)).unwrap();
+      message.success("Task completed");
+    } catch (error) {
       message.error("Failed to complete task");
     }
   };
 
   const handleDelete = async (taskId) => {
-    if (deletingTaskId === taskId) return;
-
-    setDeletingTaskId(taskId);
-    const success = await deleteTask(taskId);
-
-    if (success) {
-      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    try {
+      await dispatch(removeTask(taskId)).unwrap();
       message.success("Task deleted");
-    } else {
+    } catch (error) {
       message.error("Failed to delete task");
     }
-
-    setDeletingTaskId(null);
   };
 
   const handleEdit = (task) => {
-    setEditingTask(task);
+    dispatch(setCurrentTask(task));
     setEditContent(task.content);
     setEditDescription(task.description || "");
   };
@@ -105,65 +72,54 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
       return;
     }
 
-    const updatedTask = await updateTask(editingTask.id, {
-      content: editContent,
-      description: editDescription,
-    });
+    try {
+      const { currentTask } = store.getState().tasks;
 
-    if (updatedTask) {
-      setTasks(
-        tasks.map((task) =>
-          task.id === editingTask.id
-            ? {
-                ...task,
-                content: editContent,
-                description: editDescription,
-              }
-            : task
-        )
-      );
-      setEditingTask(null);
+      await dispatch(
+        editTask({
+          taskId: currentTask.id,
+          updates: {
+            content: editContent,
+            description: editDescription,
+          },
+        })
+      ).unwrap();
+
+      dispatch(setCurrentTask(null));
       message.success("Task updated");
-    } else {
+    } catch (error) {
       message.error("Failed to update task");
     }
   };
 
   const handleMove = (task) => {
-    setMovingTask(task);
+    dispatch(setCurrentTask(task));
     setTargetProjectId(task.project_id || "inbox");
   };
 
   const handleMoveSave = async () => {
     try {
       message.loading({ content: "Moving task...", key: "taskMove" });
+      const { currentTask } = store.getState().tasks;
 
-      await moveTask(movingTask.id, targetProjectId);
-      setTasks(tasks.filter((task) => task.id !== movingTask.id));
-      setMovingTask(null);
+      await dispatch(
+        moveTaskToProject({
+          taskId: currentTask.id,
+          destinationProjectId: targetProjectId,
+        })
+      ).unwrap();
 
+      dispatch(setCurrentTask(null)); // Clear the current task
       message.success({ content: "Task moved successfully", key: "taskMove" });
 
-      if (selectedProject) {
-        setLoading(true);
-        try {
-          const refreshProjectId =
-            selectedProject.name === "Inbox"
-              ? null
-              : selectedProject.id.toString();
-          const fetchedTasks = await fetchTasks(refreshProjectId);
-          setTasks(fetchedTasks);
-        } catch (error) {
-          console.error("Error refreshing tasks:", error);
-          message.error("Failed to refresh task list");
-        } finally {
-          setLoading(false);
-        }
-      }
+      const projectId =
+        selectedProject.name === "Inbox"
+          ? null
+          : selectedProject.id?.toString();
+      dispatch(fetchProjectTasks(projectId));
     } catch (error) {
-      console.error("Task move error:", error);
       message.error({
-        content: `Failed to move task: ${error.message || "Unknown error"}`,
+        content: `Failed to move task: ${error || "Unknown error"}`,
         key: "taskMove",
       });
     }
@@ -174,30 +130,27 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
       message.error("Task name cannot be empty");
       return;
     }
-
     try {
       setAddTaskLoading(true);
       const projectId =
         selectedProject?.id === "inbox" ? null : selectedProject?.id;
-      const newTask = await createTask(
-        projectId,
-        newTaskContent,
-        newTaskDescription || ""
-      );
-      setAddTaskLoading(false);
 
-      if (newTask) {
-        setTasks([...tasks, newTask]);
-        setNewTaskContent("");
-        setNewTaskDescription("");
-        setShowForm(false);
-        message.success("Task created successfully");
-      } else {
-        message.error("Failed to create task");
-      }
+      await dispatch(
+        addTask({
+          projectId,
+          content: newTaskContent,
+          description: newTaskDescription || "",
+        })
+      ).unwrap();
+
+      setAddTaskLoading(false);
+      setNewTaskContent("");
+      setNewTaskDescription("");
+      setShowForm(false);
+      message.success("Task created successfully");
     } catch (error) {
       setAddTaskLoading(false);
-      message.error("Failed to create task",error);
+      message.error("Failed to create task");
     }
   };
 
@@ -223,22 +176,22 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
       />
 
       <TaskEditModal
-        editingTask={editingTask}
+        editingTask={currentTask}
         editContent={editContent}
         editDescription={editDescription}
         onContentChange={(e) => setEditContent(e.target.value)}
         onDescriptionChange={(e) => setEditDescription(e.target.value)}
         onSave={handleEditSave}
-        onCancel={() => setEditingTask(null)}
+        onCancel={() => dispatch(setCurrentTask(null))}
       />
 
       <TaskMoveModal
-        movingTask={movingTask}
+        movingTask={currentTask}
         projects={projects}
         targetProjectId={targetProjectId}
         onTargetProjectChange={(value) => setTargetProjectId(value)}
         onSave={handleMoveSave}
-        onCancel={() => setMovingTask(null)}
+        onCancel={() => dispatch(setCurrentTask(null))}
       />
     </div>
   );

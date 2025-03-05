@@ -1,25 +1,36 @@
 import { useEffect, useState } from "react";
+
 import { Layout, Menu, message, Typography, Space, Avatar } from "antd";
 import { BellOutlined } from "@ant-design/icons";
+
 import Navigation from "../sidebar/Navigation";
-import {
-  fetchFavoriteProjects,
-  fetchProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-  toggleProjectFavorite,
-} from "../../utility/api";
 import AddTask from "../sidebar/AddTask";
 import ProjectModals from "../sidebar/ProjectModals";
 import FavouriteSection from "../sidebar/FavouriteSection";
 import ProjectSection from "../sidebar/ProjectSection";
+
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setSelectedProject,
+  addProject,
+  editProject,
+  removeProject,
+  toggleFavorite,
+} from "../../app/slices/projectSlice";
 const { Sider } = Layout;
 const { Title } = Typography;
 
-const Menubar = ({ onProjectSelect, onTaskAdded }) => {
+const Menubar = ({ onTaskAdded }) => {
+  const dispatch = useDispatch();
+  const {
+    projects: reduxProjects,
+    favorites: reduxFavorites,
+    loading: reduxLoading,
+  } = useSelector((state) => state.projects);
+
   const [selectedKey, SetSelectedKey] = useState("inbox");
   const [projects, setProjects] = useState([]);
+
   const [favorites, setFavorites] = useState([]);
 
   const [loading, setLoading] = useState(false);
@@ -32,22 +43,16 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
   const [currentProject, setCurrentProject] = useState(null);
 
   useEffect(() => {
-    const getProjects = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchProjects();
-        setProjects(data.filter((project) => project.name !== "Inbox"));
+    if (reduxProjects.length > 0) {
+      setProjects(reduxProjects.filter((project) => project.name !== "Inbox"));
+    }
+  }, [reduxProjects]);
 
-        const favprojects = await fetchFavoriteProjects();
-        setFavorites(favprojects);
-      } catch (error) {
-        message.error("Failed to load projects",error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getProjects();
-  }, []);
+  useEffect(() => {
+    if (reduxFavorites.length > 0) {
+      setFavorites(reduxFavorites);
+    }
+  }, [reduxFavorites]);
 
   const handleTaskAdded = (newTask) => {
     setIsAddTaskVisible(false);
@@ -68,28 +73,16 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
   const handleToggleFavorite = async (project) => {
     const isFavorite = favorites.some((p) => p.id === project.id);
 
-    setLoading(true);
     try {
-      const updatedProject = await toggleProjectFavorite(project, isFavorite);
+      await dispatch(toggleFavorite({ project, isFavorite })).unwrap();
 
-      if (updatedProject) {
-        setProjects((prev) =>
-          prev.map((p) => (p.id === project.id ? updatedProject : p))
-        );
-
-        if (isFavorite) {
-          setFavorites((prev) => prev.filter((p) => p.id !== project.id));
-          message.success(`Removed ${project.name} from favorites`);
-        } else {
-          setFavorites((prev) => [...prev, updatedProject]);
-          message.success(`Added ${project.name} to favorites`);
-        }
+      if (isFavorite) {
+        message.success(`Removed ${project.name} from favorites`);
+      } else {
+        message.success(`Added ${project.name} to favorites`);
       }
     } catch (error) {
-      console.error("Error handling toggle favorite:", error);
       message.error("Failed to update favorite status");
-    } finally {
-      setLoading(false);
     }
   };
   const getMenuItems = () => {
@@ -123,18 +116,20 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
     SetSelectedKey(e.key);
 
     if (e.key === "inbox") {
-      onProjectSelect({ id: null, name: "Inbox" });
+      dispatch(setSelectedProject({ id: null, name: "Inbox" }));
     } else if (["today", "upcoming", "filters"].includes(e.key)) {
-      onProjectSelect({
-        id: e.key,
-        name: e.key.charAt(0).toUpperCase() + e.key.slice(1),
-      });
+      dispatch(
+        setSelectedProject({
+          id: e.key,
+          name: e.key.charAt(0).toUpperCase() + e.key.slice(1),
+        })
+      );
     } else {
       const project =
         projects.find((p) => p.id.toString() === e.key) ||
         favorites.find((p) => p.id.toString() === e.key);
       if (project) {
-        onProjectSelect({ id: project.id, name: project.name });
+        dispatch(setSelectedProject({ id: project.id, name: project.name }));
       }
     }
   };
@@ -143,17 +138,12 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
       message.error("Project name cannot be empty");
       return;
     }
-
-    setLoading(true);
-    const newProject = await createProject(newProjectName);
-    setLoading(false);
-    handleMenuClick;
-    if (newProject) {
-      setProjects([...projects, newProject]);
+    try {
+      await dispatch(addProject(newProjectName)).unwrap();
       setNewProjectName("");
       setIsAddModalVisible(false);
-      message.success("Project created successfully");
-    } else {
+      message.success("Project created Successfully");
+    } catch (error) {
       message.error("Failed to create project");
     }
   };
@@ -163,29 +153,16 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
       message.error("Project name cannot be empty");
       return;
     }
-
-    setLoading(true);
-    const updatedProject = await updateProject(currentProject.id, {
-      name: currentProject.name,
-    });
-    setLoading(false);
-
-    if (updatedProject) {
-      setProjects(
-        projects.map((p) => (p.id === currentProject.id ? updatedProject : p))
-      );
-
-      if (favorites.some((f) => f.id === currentProject.id)) {
-        setFavorites(
-          favorites.map((f) =>
-            f.id === currentProject.id ? updatedProject : f
-          )
-        );
-      }
-
+    try {
+      await dispatch(
+        editProject({
+          id: currentProject.id,
+          data: { name: currentProject.name },
+        })
+      ).unwrap();
       setIsEditModalVisible(false);
       message.success("Project updated successfully");
-    } else {
+    } catch (error) {
       message.error("Failed to update project");
     }
   };
@@ -193,31 +170,20 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
   const handleDeleteProjectSave = async () => {
     if (!currentProject) return;
 
-    setLoading(true);
-    const success = await deleteProject(currentProject.id);
-    setLoading(false);
-
-    if (success) {
-      setProjects(projects.filter((p) => p.id !== currentProject.id));
-
-      if (favorites.some((f) => f.id === currentProject.id)) {
-        setFavorites(favorites.filter((f) => f.id !== currentProject.id));
-      }
+    try {
+      await dispatch(removeProject(currentProject.id)).unwrap();
 
       if (selectedKey === currentProject.id.toString()) {
         SetSelectedKey("inbox");
-        onProjectSelect({ id: null, name: "Inbox" });
       }
-
       setIsDeleteModalVisible(false);
       message.success("Project deleted successfully");
-    } else {
+    } catch (error) {
       message.error("Failed to delete project");
     }
   };
 
   return (
-   
     <Sider width={250} style={{ background: "#fcfaf8" }}>
       <Title level={5} style={{ paddingLeft: "16px", marginTop: "15px" }}>
         <Space size={15}>
@@ -266,7 +232,6 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
         }
       />
     </Sider>
-  
   );
 };
 

@@ -1,53 +1,46 @@
+// src/component/sidebar/AddTask.jsx
 import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { Modal, Form, Input, Select, Button, message } from "antd";
-import { createTask, fetchProjects } from "../../utility/api";
+import { addTask } from "../../app/slices/tasksSlice";
+import { fetchAllProjects } from "../../app/slices/projectSlice";
 
 const AddTask = ({ visible, onCancel, onTaskAdded }) => {
+  const dispatch = useDispatch();
   const [form] = Form.useForm();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { projects } = useSelector((state) => state.projects);
+  const { loading } = useSelector((state) => state.tasks);
 
   useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        const data = await fetchProjects();
-        setProjects(data);
-      } catch (error) {
-        message.error("Failed to load projects",error);
-      }
-    };
-
+    if (visible && projects.length === 0) {
+      dispatch(fetchAllProjects());
+    }
     if (visible) {
-      loadProjects();
       form.resetFields();
     }
-  }, [visible, form]);
+  }, [visible, projects.length, dispatch, form]);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
-
       const projectId =
         values.project_id === "inbox" ? null : values.project_id;
-      const newTask = await createTask(
-        projectId,
-        values.content,
-        values.description || ""
-      );
 
-      setLoading(false);
+      await dispatch(
+        addTask({
+          projectId,
+          content: values.content,
+          description: values.description || "",
+        })
+      ).unwrap();
 
-      if (newTask) {
-        message.success("Task created successfully");
-        form.resetFields();
-        if (onTaskAdded) onTaskAdded(newTask);
-        onCancel();
-      } else {
-        message.error("Failed to create task");
-      }
+      message.success("Task created successfully");
+      form.resetFields();
+
+      if (onTaskAdded) onTaskAdded();
+      onCancel();
     } catch (error) {
-      console.error("Form validation error:", error);
+      message.error("Failed to create task");
     }
   };
 
@@ -92,7 +85,7 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
         </Form.Item>
 
         <Form.Item name="description" label="Description">
-          <Input
+          <Input.TextArea
             placeholder="Add details..."
             rows={3}
             style={{ borderColor: "#e8e8e8" }}
@@ -105,6 +98,9 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
             style={{ borderColor: "#e8e8e8" }}
             dropdownStyle={{ borderColor: "#e8e8e8" }}
           >
+            <Select.Option key="inbox" value="inbox">
+              Inbox
+            </Select.Option>
             {projects.map((project) => (
               <Select.Option key={project.id} value={project.id}>
                 {project.name}
