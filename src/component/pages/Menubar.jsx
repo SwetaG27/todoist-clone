@@ -41,7 +41,7 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
         const favprojects = await fetchFavoriteProjects();
         setFavorites(favprojects);
       } catch (error) {
-        message.error("Failed to load projects",error);
+        message.error(`Failed to load projects:${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -86,8 +86,7 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
         }
       }
     } catch (error) {
-      console.error("Error handling toggle favorite:", error);
-      message.error("Failed to update favorite status");
+      message.error(`Failed to update favorite status:${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -217,7 +216,6 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
   };
 
   return (
-   
     <Sider width={250} style={{ background: "#fcfaf8" }}>
       <Title level={5} style={{ paddingLeft: "16px", marginTop: "15px" }}>
         <Space size={15}>
@@ -266,7 +264,6 @@ const Menubar = ({ onProjectSelect, onTaskAdded }) => {
         }
       />
     </Sider>
-  
   );
 };
 

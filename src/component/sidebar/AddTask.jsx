@@ -13,7 +13,7 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
         const data = await fetchProjects();
         setProjects(data);
       } catch (error) {
-        message.error("Failed to load projects",error);
+        message.error(`Failed to load projects:${error.message}`);
       }
     };
 
@@ -47,7 +47,7 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
         message.error("Failed to create task");
       }
     } catch (error) {
-      console.error("Form validation error:", error);
+      console.error(`Form validation error:${error.message}`);
     }
   };
 

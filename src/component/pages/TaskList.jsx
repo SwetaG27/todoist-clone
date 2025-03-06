@@ -44,7 +44,9 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
           const fetchedTasks = await fetchTasks(projectId);
           setTasks(fetchedTasks);
         } catch (error) {
-          message.error(`Failed to load tasks for ${selectedProject.name}: ${error}`);
+          message.error(
+            `Failed to load tasks for ${selectedProject.name}: ${error}`
+          );
           setTasks([]);
         } finally {
           setLoading(false);
@@ -61,7 +63,7 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
         const projects = await fetchProjects();
         setProjects(projects);
       } catch (error) {
-        console.error("Error fetching projects:", error);
+        console.error(`Error fetching projects:${error.message}`);
       }
     };
 
@@ -154,16 +156,14 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
           const fetchedTasks = await fetchTasks(refreshProjectId);
           setTasks(fetchedTasks);
         } catch (error) {
-          console.error("Error refreshing tasks:", error);
-          message.error("Failed to refresh task list");
+          message.error(`Failed to refresh task list:${error.message}`);
         } finally {
           setLoading(false);
         }
       }
     } catch (error) {
-      console.error("Task move error:", error);
       message.error({
-        content: `Failed to move task: ${error.message || "Unknown error"}`,
+        content: `Failed to move task: ${error.message}`,
         key: "taskMove",
       });
     }
@@ -197,7 +197,7 @@ const TaskList = ({ selectedProject, refreshKey = 0 }) => {
       }
     } catch (error) {
       setAddTaskLoading(false);
-      message.error("Failed to create task",error);
+      message.error(`Failed to create task:${error.message}`);
     }
   };
 
