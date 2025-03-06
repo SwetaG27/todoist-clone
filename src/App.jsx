@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Layout } from "antd";
 import Menubar from "./component/pages/Menubar";
 import TaskList from "./component/pages/TaskList";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { fetchAllProjects, fetchAllFavorites } from "./app/slices/projectSlice";
 
 const { Content } = Layout;

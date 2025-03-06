@@ -51,7 +51,7 @@ const TaskEditModal = ({
         >
           Description
         </label>
-        <Input.TextArea
+        <Input
           value={editDescription}
           onChange={onDescriptionChange}
           rows={3}

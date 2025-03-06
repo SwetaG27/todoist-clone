@@ -22,18 +22,16 @@ const { Title } = Typography;
 
 const Menubar = ({ onTaskAdded }) => {
   const dispatch = useDispatch();
-  const {
-    projects: reduxProjects,
-    favorites: reduxFavorites,
-    loading: reduxLoading,
-  } = useSelector((state) => state.projects);
+  const { projects: reduxProjects, favorites: reduxFavorites } = useSelector(
+    (state) => state.projects
+  );
 
   const [selectedKey, SetSelectedKey] = useState("inbox");
   const [projects, setProjects] = useState([]);
 
   const [favorites, setFavorites] = useState([]);
 
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [isAddTaskVisible, setIsAddTaskVisible] = useState(false);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);

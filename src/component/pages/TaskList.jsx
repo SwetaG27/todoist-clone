@@ -17,19 +17,19 @@ import {
 
 const TaskList = () => {
   const dispatch = useDispatch();
-  const { tasks, loading, currentTask } = useSelector((state) => state.tasks);
+  const { tasks, loading } = useSelector((state) => state.tasks);
   const { selectedProject, projects } = useSelector((state) => state.projects);
 
   const [showForm, setShowForm] = useState(false);
   const [newTaskContent, setNewTaskContent] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [addTaskLoading, setAddTaskLoading] = useState(false);
-  const [deletingTaskId, setDeletingTaskId] = useState(null);
+
   const [editingTask, setEditingTask] = useState(null);
+  const [movingTask, setMovingTask] = useState(null);
+
   const [editContent, setEditContent] = useState("");
   const [editDescription, setEditDescription] = useState("");
-
-  const [movingTask, setMovingTask] = useState(null);
   const [targetProjectId, setTargetProjectId] = useState(null);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const TaskList = () => {
   };
 
   const handleEdit = (task) => {
-    dispatch(setCurrentTask(task));
+    setEditingTask(task);
     setEditContent(task.content);
     setEditDescription(task.description || "");
   };
@@ -73,11 +73,9 @@ const TaskList = () => {
     }
 
     try {
-      const { currentTask } = store.getState().tasks;
-
       await dispatch(
         editTask({
-          taskId: currentTask.id,
+          taskId: editingTask.id,
           updates: {
             content: editContent,
             description: editDescription,
@@ -85,7 +83,7 @@ const TaskList = () => {
         })
       ).unwrap();
 
-      dispatch(setCurrentTask(null));
+      setEditingTask(null);
       message.success("Task updated");
     } catch (error) {
       message.error("Failed to update task");
@@ -93,23 +91,22 @@ const TaskList = () => {
   };
 
   const handleMove = (task) => {
-    dispatch(setCurrentTask(task));
+    setMovingTask(task);
     setTargetProjectId(task.project_id || "inbox");
   };
 
   const handleMoveSave = async () => {
     try {
       message.loading({ content: "Moving task...", key: "taskMove" });
-      const { currentTask } = store.getState().tasks;
 
       await dispatch(
         moveTaskToProject({
-          taskId: currentTask.id,
+          taskId: movingTask.id,
           destinationProjectId: targetProjectId,
         })
       ).unwrap();
 
-      dispatch(setCurrentTask(null)); // Clear the current task
+      setMovingTask(null);
       message.success({ content: "Task moved successfully", key: "taskMove" });
 
       const projectId =
@@ -176,22 +173,22 @@ const TaskList = () => {
       />
 
       <TaskEditModal
-        editingTask={currentTask}
+        editingTask={editingTask}
         editContent={editContent}
         editDescription={editDescription}
         onContentChange={(e) => setEditContent(e.target.value)}
         onDescriptionChange={(e) => setEditDescription(e.target.value)}
         onSave={handleEditSave}
-        onCancel={() => dispatch(setCurrentTask(null))}
+        onCancel={() => setEditingTask(null)}
       />
 
       <TaskMoveModal
-        movingTask={currentTask}
+        movingTask={movingTask}
         projects={projects}
         targetProjectId={targetProjectId}
         onTargetProjectChange={(value) => setTargetProjectId(value)}
         onSave={handleMoveSave}
-        onCancel={() => dispatch(setCurrentTask(null))}
+        onCancel={() => setMovingTask(null)}
       />
     </div>
   );

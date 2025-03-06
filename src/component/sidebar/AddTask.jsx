@@ -1,5 +1,4 @@
-// src/component/sidebar/AddTask.jsx
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Modal, Form, Input, Select, Button, message } from "antd";
 import { addTask } from "../../app/slices/tasksSlice";
@@ -85,7 +84,7 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
         </Form.Item>
 
         <Form.Item name="description" label="Description">
-          <Input.TextArea
+          <Input
             placeholder="Add details..."
             rows={3}
             style={{ borderColor: "#e8e8e8" }}
@@ -98,9 +97,6 @@ const AddTask = ({ visible, onCancel, onTaskAdded }) => {
             style={{ borderColor: "#e8e8e8" }}
             dropdownStyle={{ borderColor: "#e8e8e8" }}
           >
-            <Select.Option key="inbox" value="inbox">
-              Inbox
-            </Select.Option>
             {projects.map((project) => (
               <Select.Option key={project.id} value={project.id}>
                 {project.name}

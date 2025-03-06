@@ -38,7 +38,6 @@ const ActionMenu = ({ onEdit, onDelete, onFavorite, isFavorite }) => {
       <Button
         type="text"
         icon={<EllipsisOutlined />}
-        // onClick={(e) => e.stopPropagation()}
         style={{
           minWidth: "24px",
           height: "24px",
